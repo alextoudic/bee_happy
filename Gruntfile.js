@@ -85,17 +85,6 @@ module.exports = function (grunt) {
             },
             server: '.tmp'
         },
-        jshint: {
-            options: {
-                jshintrc: '.jshintrc'
-            },
-            all: [
-                'Gruntfile.js',
-                '<%= yeoman.app %>/scripts/{,*/}*.js',
-                '!<%= yeoman.app %>/scripts/vendor/*',
-                'test/spec/{,*/}*.js'
-            ]
-        },
         mocha: {
             all: {
                 options: {
@@ -200,14 +189,14 @@ module.exports = function (grunt) {
             //
             //     <!-- build:css({.tmp,app}) styles/main.css -->
             //
-            // dist: {
-            //     files: {
-            //         '<%= yeoman.dist %>/styles/main.css': [
-            //             '.tmp/styles/{,*/}*.css',
-            //             '<%= yeoman.app %>/styles/{,*/}*.css'
-            //         ]
-            //     }
-            // }
+            dist: {
+                files: {
+                    '<%= yeoman.dist %>/styles/main.css': [
+                        '.tmp/styles/{,*/}*.css',
+                        '<%= yeoman.app %>/styles/{,*/}*.css'
+                    ]
+                }
+            }
         },
         htmlmin: {
             dist: {
@@ -242,7 +231,8 @@ module.exports = function (grunt) {
                         '*.{ico,png,txt}',
                         '.htaccess',
                         'images/{,*/}*.{webp,gif}',
-                        'styles/fonts/{,*/}*.*'
+                        'styles/fonts/{,*/}*.*',
+                        'assets/*'
                     ]
                 }]
             },
@@ -307,18 +297,16 @@ module.exports = function (grunt) {
         'useminPrepare',
         'concurrent:dist',
         'autoprefixer',
-        'requirejs',
         'concat',
         'cssmin',
         'uglify',
-        'modernizr',
+        //'modernizr',
         'copy:dist',
         'rev',
         'usemin'
     ]);
 
     grunt.registerTask('default', [
-        'jshint',
         'test',
         'build'
     ]);

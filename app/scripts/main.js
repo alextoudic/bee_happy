@@ -23,6 +23,7 @@ var plane, colorsTouch;
 var materials = [];
 
 var accelaration = 1;
+var goSlow = true;
 var goFast = false;
 var begin = false;
 
@@ -41,7 +42,8 @@ var camera, scene, projector, renderer;
 var pointLight;
 var moveCamera = true;
 var mouseX = 0, mouseY = 0;
-var bee, flower;
+var bee, flower, moon;
+var moonLight;
 var wings = {};
 config.MAX_FLOWERS = 20;
 
@@ -50,6 +52,29 @@ var beeFloat = 0.0;
 
 var analyser;
 
+var colors = [
+	{
+		light: '#ea8d8d',
+		normal: '#be2d2d',
+		dark: '#7d1010'
+	},
+	{
+		light: '#6fd1fa',
+		normal: '#00b4ff',
+		dark: '#0d6082'
+	},
+	{
+		light: '#69ed49',
+		normal: '#39c318',
+		dark: '#125d00'
+	},
+	{
+		light: '#ffe35e',
+		normal: '#ffd200',
+		dark: '#9c8000'
+	}
+];
+
 var gui = new dat.GUI();
 
 init();
@@ -57,7 +82,7 @@ init();
 function launch() {
 	TweenMax.to('button', .5, {opacity: 0, onComplete: function () {
 			$('button').css({'display': 'none'});
-			$('body').css({'cursor': 'url(assets/images/fast.png), auto'});
+			$('body').css({'cursor': 'url(assets/images/slow.png), auto'});
 		}
 	});
 	animate();
@@ -117,26 +142,14 @@ function init() {
 	camera.rotation.x = -Math.PI/10;
 
 	/*------------------------------------------
-					  LIGHTS
-	------------------------------------------*/
-
-	var light = new THREE.AmbientLight( 0x151515 ); // soft white light
-	scene.add( light );
-
-	var directionalLight = new THREE.DirectionalLight( 0xffffff, 0.5 );
-	directionalLight.position.set( 0, 1, 0 );
-	scene.add( directionalLight );
-
-	pointLight = new THREE.PointLight( 0x151515, 10, 100 );
-	pointLight.position.set( 0, 0, 0 );
-	scene.add( pointLight );
-
-	/*------------------------------------------
 					  MESHES
 	------------------------------------------*/
 
+	var texture = THREE.ImageUtils.loadTexture( './assets/images/map.jpg' );
+	texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
+	texture.repeat.set( 5, 5 );
 	plane = new THREE.Mesh(new THREE.PlaneGeometry(window.innerWidth*5, 4000), new THREE.MeshLambertMaterial({
-		color: 0x000000
+		map: texture
 	}));
 	plane.rotation.x = -Math.PI/2;
 	plane.material.side = THREE.DoubleSide;
@@ -149,7 +162,6 @@ function init() {
 
     var j = 255;
     var k = 256;
-    var colors = ['#ffd200', '#be2d2d', '#00b4ff', '#39c318'];
     var colorIndex = 0;
 
     for(var i = 0; i < 256; ++i) {
@@ -158,11 +170,11 @@ function init() {
 
 	    materials.push( new THREE.MeshPhongMaterial({
 			// light
-			specular: color,
+			specular: color.light,
 			// intermediate
-			color: color,
+			color: color.normal,
 			// dark
-			emissive: color,
+			emissive: color.dark,
 			shininess: 1
 		}));
     	geometry.faces[j--].materialIndex = i;
@@ -189,11 +201,11 @@ function init() {
 		bee.rotation.y = -Math.PI/2;
 		bee.material = new THREE.MeshPhongMaterial({
 			    	// light
-			    	specular: 0x7c7500,
+			    	specular: '#ecdf00',
 			    	// intermediate
-			    	color: 0x7c7500,
+			    	color: '#7c7500',
 			    	// dark
-			    	emissive: 0x7c7500,
+			    	emissive: '#4f4a00',
 			    	shininess: 1
 			    });
 		scene.add(bee);
@@ -225,11 +237,11 @@ function init() {
 		wings.right.rotation.y = -Math.PI/2;
 		wings.right.material = new THREE.MeshPhongMaterial({
 			    	// light
-			    	specular: 0xffffff,
+			    	specular: '#ffffff',
 			    	// intermediate
-			    	color: 0xffffff,
+			    	color: '#d4d4d4',
 			    	// dark
-			    	emissive: 0xffffff,
+			    	emissive: '#a5a5a5',
 			    	shininess: 1,
 			    	transparent: true
 			    });
@@ -246,6 +258,40 @@ function init() {
 		if(play)
 			animate();
 	} );
+
+	var moonTexture = THREE.ImageUtils.loadTexture( './assets/images/moon.jpg' );
+	moonTexture.wrapS = moonTexture.wrapT = THREE.RepeatWrapping;
+	moonTexture.repeat.set( 5, 5 );
+	moon = new THREE.Mesh(new THREE.SphereGeometry(250, 200, 200), new THREE.MeshLambertMaterial({
+		map: moonTexture,
+		emissive: 0xe8e8e8
+	}));
+	moon.castShadow = true;
+	moon.side = THREE.DoubleSide;
+	moon.position.x = 4000;
+	moon.position.y = 2000;
+	moon.position.z = -4000;
+	scene.add(moon);
+
+	/*------------------------------------------
+					  LIGHTS
+	------------------------------------------*/
+
+	var light = new THREE.AmbientLight( 0x151515 ); // soft white light
+	scene.add( light );
+
+	var directionalLight = new THREE.DirectionalLight( 0xffffff, 0.5 );
+	directionalLight.position.set( 0, 1, 0 );
+	scene.add( directionalLight );
+
+	pointLight = new THREE.PointLight( 0x151515, 10, 10 );
+	pointLight.position.set( 0, 0, 0 );
+	scene.add( pointLight );
+
+	moonLight = new THREE.SpotLight( 0xffffff, .5 );
+	moonLight.position.set( moon.position.x, moon.position.y, moon.position.z );
+	moonLight.castShadow = true;
+	scene.add( moonLight );
 
 	/*------------------------------------------
 					 RENDERER
@@ -284,6 +330,7 @@ function init() {
 	window.addEventListener( 'resize', onWindowResize, false );
 	document.addEventListener( 'mousemove', onDocumentMouseMove, false );
 	document.addEventListener( 'mousedown', function () {
+		goSlow = false;
 		goFast = true;
 	}, false );
 	document.addEventListener( 'mouseup', function () {
@@ -348,15 +395,16 @@ function animate() {
 
 			var newFlower = flowerOut.splice(0, 1)[0];
 
+			var i = Math.floor(Math.random()*4);
 			if(!newFlower) {
 				var color = '#'+Math.floor(Math.random()*16777215).toString(16);
 				newFlower = new THREE.Mesh( flower.geometry, new THREE.MeshPhongMaterial({
 			    	// light
-			    	specular: color,
+			    	specular: colors[i].light,
 			    	// intermediate
-			    	color: color,
+			    	color: colors[i].normal,
 			    	// dark
-			    	emissive: color,
+			    	emissive: colors[i].dark,
 			    	shininess: 1
 			    }));
 			}
@@ -402,6 +450,8 @@ function render() {
 	wings.left.position.y += Math.sin(beeFloat)/5;
 
 	if(goFast && accelaration < 5) {
+		$('body').css({'cursor': 'url(assets/images/medium.png), auto'});
+
 		++accelaration;
 		config.camera.fov += accelaration;
 		var temp = {
@@ -414,6 +464,9 @@ function render() {
 		camera.position.y = temp.y;
 		camera.position.z = temp.z;
 		audio.playbackRate += 0.3;
+
+		if(accelaration == 5)
+			$('body').css({'cursor': 'url(assets/images/fast.png), auto'});
 	}
 	else if(!goFast && accelaration > 1) {
 		--accelaration;
@@ -429,7 +482,11 @@ function render() {
 		camera.position.z = temp.z;
 		audio.playbackRate -= 0.3;
 	}
-	else if(!goFast && accelaration == 1) {
+	else if(!goFast && !goSlow && accelaration == 1) {
+		goSlow = true;
+
+		$('body').css({'cursor': 'url(assets/images/slow.png), auto'});
+
 		config.camera.fov = 70;
 		var temp = {
 			x: camera.position.x,
@@ -454,10 +511,17 @@ function render() {
 
 	$("#container").css({'background-position': -camera.position.y -camera.position.x});
 
+	moon.position.x = 4000 - camera.position.x;
+	moon.position.y = 2000 - camera.position.y;
+	moonLight.position.x = 4000 - camera.position.x;
+	moonLight.position.y = 2000 - camera.position.y;
+
 	bee.position.z -= 2*accelaration;
 	wings.right.position.z -= 2*accelaration;
 	wings.left.position.z -= 2*accelaration;
 	plane.position.z -= 2*accelaration;
+	moon.position.z -= 2*accelaration;
+	moonLight.position.z -= 2*accelaration;
 	colorsTouch.position.z -= 2*accelaration;
 	pointLight.position = camera.position;
 
